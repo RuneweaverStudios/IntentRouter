@@ -31,6 +31,32 @@ except ImportError:
     HAS_OPENCLAW = False
 
 
+def get_openclaw_gateway_config():
+    """
+    Read gateway token and port from openclaw.json every time.
+    Returns dict with gatewayPort, gatewayToken (from gateway.auth.token) if present.
+    """
+    openclaw_home = os.environ.get('OPENCLAW_HOME') or os.path.expanduser('~/.openclaw')
+    config_path = Path(openclaw_home) / 'openclaw.json'
+    if not config_path.exists():
+        return {}
+    try:
+        with open(config_path, 'r') as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {}
+    gateway = data.get('gateway') or {}
+    auth = gateway.get('auth') or {}
+    token = auth.get('token') if auth.get('mode') == 'token' else None
+    port = gateway.get('port')
+    out = {}
+    if token:
+        out['gatewayToken'] = token
+    if port is not None:
+        out['gatewayPort'] = int(port)
+    return out
+
+
 class FridayRouter:
     """Austin's intelligent model router with fixed scoring."""
     
@@ -411,6 +437,9 @@ def main():
         if output_json:
             # Machine-readable: single JSON object for sessions_spawn
             out = {k: v for k, v in result['params'].items()}
+            # Include gateway token/port from openclaw.json every time so client uses correct token
+            gateway_config = get_openclaw_gateway_config()
+            out.update(gateway_config)
             print(json.dumps(out))
         else:
             print(f"📋 Task: {task}")

@@ -85,7 +85,7 @@ python scripts/router.py cost "design a landing page"
 # OpenClaw spawn params (human-readable)
 python scripts/router.py spawn "research the best LLMs"
 
-# Spawn params as JSON (for sessions_spawn: parse and pass to tool)
+# Spawn params as JSON (includes gatewayToken/gatewayPort from openclaw.json; parse and pass to sessions_spawn)
 python scripts/router.py spawn --json "research the best LLMs"
 
 # List all configured models

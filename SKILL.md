@@ -12,21 +12,21 @@ Austin's intelligent model routing skill with fixed bugs from the original intel
 
 ## Orchestrator flow (mandatory for task requests)
 
-When you are the **main agent** (Sonnet) and the user gives you a **task** (something to do: code, research, check, build, fix, etc.), you must **delegate** it. You do not perform the task yourself; a sub-agent does.
+When you are the **main agent** (Sonnet) and the user gives you a **task** (something to do: code, research, check, build, fix, **write**, **create**, design, poem, story, etc.), you must **delegate** it. You do **not** perform the task yourself; a sub-agent does.
 
-**Steps:**
+**Steps (both required):**
 
-1. **Run the Friday Router** with the user's message to get the recommended model and spawn params. Use:
+1. **Run the Friday Router** to get spawn params:
    ```bash
-   python3 <skill_dir>/scripts/router.py spawn --json "<user message>"
+   python3 workspace/skills/friday-router/scripts/router.py spawn --json "<user message>"
    ```
-   Resolve `<skill_dir>` to the friday-router skill directory (e.g. `workspace/skills/friday-router`). The `--json` output is a single JSON object with `model`, `task`, `sessionTarget`, and optionally `label`.
+   The `--json` output is a single JSON object with `model`, `task`, `sessionTarget`, and optionally `label`.
 
-2. **Call `sessions_spawn`** with the `task` and `model` (and any other params the tool accepts) from the router output. Do not invent a model; use exactly the `model` value from the router.
+2. **Call `sessions_spawn`** with the `task` and `model` (and any other params the tool accepts) from the router output. Use exactly the `model` value from the router—do not substitute a different model. The sub-agent will run with that model (e.g. Kimi k2.5 for CREATIVE) and do the work.
 
-3. **Do not do the task yourself.** The sub-agent runs with the router-chosen model and does the work.
+3. **Forward or summarize** the sub-agent's result to the user. You may briefly say you're delegating to the recommended model, then present the sub-agent's reply.
 
-4. **Forward or summarize** the sub-agent's result to the user. You may briefly say you're delegating to the recommended model, then present the sub-agent's reply.
+**Anti-pattern (forbidden):** Running the router, seeing e.g. "Kimi k2.5 recommended", and then doing the creative task yourself in the same turn. That bypasses the sub-agent: Kimi is never used and logs will show only the main model (e.g. Claude Sonnet 4). Always call `sessions_spawn` after the router so the recommended model actually runs the task.
 
 **Exception:** Meta-questions (e.g. "what model are you?", "how does routing work?") you answer yourself. Only delegate when the user is asking for work to be done.
 
