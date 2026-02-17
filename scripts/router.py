@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 OpenRouterRouter | Codename: Centipede (friday-router skill)
-Version 1.4.0
+Version 1.7.0
 
 Fixed bugs from original intelligent-router:
 - Simple indicators now properly invert (high match = SIMPLE, not complex)
@@ -31,38 +31,8 @@ except ImportError:
     HAS_OPENCLAW = False
 
 
-def get_openclaw_gateway_config():
-    """
-    Read gateway auth and port from openclaw.json every time.
-    Returns dict with gatewayPort and auth secret:
-    - gatewayToken when gateway.auth.mode == "token"
-    - gatewayPassword when gateway.auth.mode == "password"
-    """
-    openclaw_home = os.environ.get('OPENCLAW_HOME') or os.path.expanduser('~/.openclaw')
-    config_path = Path(openclaw_home) / 'openclaw.json'
-    if not config_path.exists():
-        return {}
-    try:
-        with open(config_path, 'r') as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
-    gateway = data.get('gateway') or {}
-    auth = gateway.get('auth') or {}
-    auth_mode = auth.get('mode')
-    token = auth.get('token') if auth_mode == 'token' else None
-    password = auth.get('password') if auth_mode == 'password' else None
-    port = gateway.get('port')
-    out = {}
-    if token:
-        out['gatewayToken'] = token
-    if password:
-        out['gatewayPassword'] = password
-    if auth_mode in ('token', 'password'):
-        out['gatewayAuthMode'] = auth_mode
-    if port is not None:
-        out['gatewayPort'] = int(port)
-    return out
+# Removed get_openclaw_gateway_config() - gateway auth secrets should not be exposed in router output
+# Use gateway-guard skill separately if gateway auth management is needed
 
 
 class FridayRouter:
@@ -128,6 +98,9 @@ class FridayRouter:
         
         self.config_path = Path(config_path)
         self.config = self._load_config()
+        
+        # Removed troubleshooting loop detection and FACEPALM integration
+        # Use FACEPALM skill separately if troubleshooting is needed
     
     def _load_config(self):
         """Load and parse configuration file."""
@@ -195,6 +168,14 @@ class FridayRouter:
             best_tier = 'FAST'
         else:
             best_tier = max(tier_scores, key=tier_scores.get)
+        
+        # Website/frontend projects → CREATIVE (Kimi k2.5), never CODE
+        website_project_keywords = [
+            'website', 'web site', 'landing page', 'landing', 'frontend',
+            'community site', 'online community', 'build a site', 'new site'
+        ]
+        if self._keyword_match(task_description, website_project_keywords) > 0:
+            best_tier = 'CREATIVE'
         
         # Map COMPLEX to CODE for our tier system
         if best_tier == 'COMPLEX':
@@ -333,7 +314,7 @@ class FridayRouter:
         if not model:
             raise ValueError(f"No model found for tier: {recommendation['tier']}")
         
-        # Build the spawn params
+        # Build the spawn params (no gateway auth secrets)
         params = {
             'task': task,
             'model': model['id'],
@@ -352,7 +333,7 @@ class FridayRouter:
 def main():
     """CLI entry point."""
     if len(sys.argv) < 2:
-        print("OpenRouterRouter | Codename: Centipede v1.5.0")
+        print("OpenRouterRouter | Codename: Centipede v1.7.0")
         print("\nUsage:")
         print("  router.py default                Show session default model (capable by default)")
         print("  router.py classify <task>       Classify task and recommend model")
@@ -444,10 +425,8 @@ def main():
         
         if output_json:
             # Machine-readable: single JSON object for sessions_spawn
+            # Note: Gateway auth secrets are NOT included - use gateway-guard skill separately if needed
             out = {k: v for k, v in result['params'].items()}
-            # Include gateway token/port from openclaw.json every time so client uses correct token
-            gateway_config = get_openclaw_gateway_config()
-            out.update(gateway_config)
             print(json.dumps(out))
         else:
             print(f"📋 Task: {task}")

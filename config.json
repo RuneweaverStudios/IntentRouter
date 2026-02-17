@@ -1,6 +1,6 @@
 {
   "name": "OpenRouterRouter | Codename: Centipede",
-  "description": "Your AI's Smart Traffic Director: Precisely Matching Your OpenClaw Tasks to the Perfect LLM. Intelligent LLM orchestration—DeepSeek Coder for code, Kimi k2.5 for creative, Grok Fast for research. Route with purpose.",
+  "description": "Your AI's Smart Traffic Director: Precisely Matching Your OpenClaw Tasks to the Perfect LLM. Intelligent LLM orchestration—MiniMax 2.5 for code, Kimi k2.5 for creative, Grok Fast for research. Route with purpose.",
   "version": "1.5.0",
   "author": "Austin",
   "default_model": "openrouter/google/gemini-2.5-flash",
@@ -52,13 +52,13 @@
     {
       "id": "openrouter/minimax/minimax-m2.5",
       "alias": "Minimax-2.5",
-      "tier": "REASONING",
+      "tier": "CODE",
       "provider": "openrouter",
       "input_cost_per_m": 0.10,
       "output_cost_per_m": 0.10,
       "context_window": 128000,
-      "capabilities": ["text", "reasoning"],
-      "use_for": ["reasoning fallback"]
+      "capabilities": ["text", "reasoning", "code"],
+      "use_for": ["code generation", "debugging", "refactoring", "reasoning fallback"]
     },
     {
       "id": "openrouter/moonshotai/kimi-k2.5",
