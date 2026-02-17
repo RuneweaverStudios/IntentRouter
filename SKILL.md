@@ -25,11 +25,11 @@ Agent Swarm analyzes your tasks and directs them to the best LLM—MiniMax 2.5 f
 
 ## Orchestrator flow (mandatory for task requests)
 
-When you are the **main agent** (Gemini 2.5 Flash) and the user gives you a **task** (code, research, write, create, design, poem, story, fix, build, etc.), you must **delegate** it. You do **not** perform the task yourself; a sub-agent does.
+When you are the **main agent** (Gemini 2.5 Flash), you **classify** the user request by running the router; you do **not** perform the task yourself—a sub-agent does. For any **task** (code, research, write, create, design, poem, story, fix, build, etc.), you must **delegate**.
 
 **Steps (all three required):**
 
-1. **Run Agent Swarm router** to get spawn params:
+1. **Run Agent Swarm router** to classify and get spawn params:
    ```bash
    python3 workspace/skills/agent-swarm/scripts/router.py spawn --json "<user message>"
    ```
