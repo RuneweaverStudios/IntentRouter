@@ -1,20 +1,18 @@
-# Agent Swarm | OpenClaw Skill
+# IntentRouter | OpenClaw Skill
 
-**LLM routing and subagent delegation.** Routes each task to the right model, spawns subagents, and saves tokens.
+**Intelligent LLM routing for OpenClaw.** Classifies tasks by intent and routes each to the optimal model, with input validation and prompt-injection protection.
 
-**v1.7.0 — This version is tested and working.** COMPLEX tier, absolute paths for TUI delegation. **Security-focused release:** Removed gateway auth secret exposure and gateway management functionality for improved security rating. (Formerly IntentRouter / friday-router; now single skill: agent-swarm.)
+**v1.8.0 — Identity fix + security hardening.** Resolved naming inconsistency (formerly agent-swarm/friday-router, now consistently IntentRouter). Added `validate_task_string` input validation and prompt-injection rejection. Removed gateway auth secret exposure.
 
-Agent Swarm | OpenClaw Skill routes your OpenClaw tasks to the best LLM for the job and delegates work to subagents. You save tokens (orchestrator stays on a cheap model; only the task runs on the matched model) and get better results—MiniMax 2.5 for code, Kimi k2.5 for creative, Grok Fast for research.
-
-**Security improvements in v1.7.0:** Removed gateway auth token/password exposure from router output. Gateway management functionality has been removed - use the separate [gateway-guard](https://clawhub.ai/skills/gateway-guard) skill if gateway auth management is needed. FACEPALM troubleshooting integration has been removed - use the separate [FACEPALM](https://github.com/RuneweaverStudios/FACEPALM) skill if troubleshooting is needed.
+IntentRouter analyzes your OpenClaw tasks and routes them to the best LLM for the job, then delegates work to subagents. You save tokens (orchestrator stays on a cheap model; only the task runs on the matched model) and get better results -- MiniMax 2.5 for code, Kimi k2.5 for creative, Grok Fast for research.
 
 ## Requirements
 
-- **OpenRouter** — All model delegation uses OpenRouter (`openrouter/...` prefix). Configure OpenClaw with an OpenRouter API key so one auth profile covers every model.
+- **OpenRouter** -- All model delegation uses OpenRouter (`openrouter/...` prefix). Configure OpenClaw with an OpenRouter API key so one auth profile covers every model.
 
 ## Default behavior
 
-**Session default / orchestrator:** Gemini 2.5 Flash (`openrouter/google/gemini-2.5-flash`) — fast, cheap, reliable at tool-calling.
+**Session default / orchestrator:** Gemini 2.5 Flash (`openrouter/google/gemini-2.5-flash`) -- fast, cheap, reliable at tool-calling.
 
 The router delegates tasks to tier-specific sub-agents (Kimi for creative, MiniMax 2.5 for code, etc.) via `sessions_spawn`. Simple tasks (check, status, list) down-route to Gemini 2.5 Flash.
 
@@ -24,15 +22,15 @@ The router delegates tasks to tier-specific sub-agents (Kimi for creative, MiniM
 
 The **main agent (Gemini 2.5 Flash)** does not do user tasks itself. For every user **task** (code, research, write, build, etc.):
 
-1. Run Agent Swarm router: `python scripts/router.py spawn --json "<user message>"` and parse the JSON.
+1. Run IntentRouter: `python scripts/router.py spawn --json "<user message>"` and parse the JSON.
 2. Call **sessions_spawn** with the `task` and `model` from the router output (use the exact `model` value).
 3. Forward the sub-agent's result to the user.
 
 **Example:**
 ```
 router: {"task":"write a poem","model":"openrouter/moonshotai/kimi-k2.5","sessionTarget":"isolated"}
-→ sessions_spawn(task="write a poem", model="openrouter/moonshotai/kimi-k2.5", sessionTarget="isolated")
-→ Forward Kimi k2.5's poem to user. Say "Using: Kimi k2.5".
+-> sessions_spawn(task="write a poem", model="openrouter/moonshotai/kimi-k2.5", sessionTarget="isolated")
+-> Forward Kimi k2.5's poem to user. Say "Using: Kimi k2.5".
 ```
 
 **Exception:** Meta-questions ("what model are you?") you answer yourself.
@@ -43,7 +41,7 @@ router: {"task":"write a poem","model":"openrouter/moonshotai/kimi-k2.5","sessio
 
 ```bash
 npm install -g clawhub
-clawhub install agent-swarm
+clawhub install intent-router
 
 python scripts/router.py default
 python scripts/router.py classify "your task description"
@@ -53,12 +51,14 @@ python scripts/router.py classify "your task description"
 
 ## Features
 
-- **Orchestrator** — Gemini 2.5 Flash delegates to tier-specific sub-agents via `sessions_spawn`
+- **Orchestrator** -- Gemini 2.5 Flash delegates to tier-specific sub-agents via `sessions_spawn`
+- **Input validation** -- `validate_task_string` rejects empty, overly long, and prompt-injection inputs
+- **Prompt-injection rejection** -- patterns like "ignore previous instructions" are blocked before routing
 - Fixed scoring bugs from original intelligent-router
 - 7 tiers: FAST, REASONING, CREATIVE, RESEARCH, CODE, QUALITY, VISION
 - All models via OpenRouter (single API key)
 - Config-driven: `config.json` for models and routing rules
-- **Security-focused** — No gateway auth secret exposure, no process management
+- **Security-focused** -- No gateway auth secret exposure, no process management
 
 ---
 
@@ -75,7 +75,7 @@ python scripts/router.py classify "your task description"
 | QUALITY | GLM 4.7 Flash | $0.06 / $0.40 |
 | VISION | GPT-4o | $2.50 / $10.00 |
 
-**Fallbacks:** FAST → Gemini 1.5 Flash, Haiku; QUALITY → GLM 4.7, Sonnet 4, GPT-4o; CODE → Qwen Coder; REASONING → Minimax 2.5.
+**Fallbacks:** FAST -> Gemini 1.5 Flash, Haiku; QUALITY -> GLM 4.7, Sonnet 4, GPT-4o; CODE -> Qwen Coder; REASONING -> Minimax 2.5.
 
 ---
 
@@ -83,11 +83,11 @@ python scripts/router.py classify "your task description"
 
 ```bash
 python scripts/router.py default                          # Show default model
-python scripts/router.py classify "fix lint errors"        # Classify → tier + model
+python scripts/router.py classify "fix lint errors"        # Classify -> tier + model
 python scripts/router.py score "build a React auth system" # Detailed scoring
 python scripts/router.py cost "design a landing page"      # Cost estimate
 python scripts/router.py spawn "research best LLMs"        # Spawn params (human)
-python scripts/router.py spawn --json "research best LLMs" # JSON for sessions_spawn (no gateway secrets)
+python scripts/router.py spawn --json "research best LLMs" # JSON for sessions_spawn
 python scripts/router.py models                            # List all models
 ```
 
@@ -98,16 +98,31 @@ python scripts/router.py models                            # List all models
 ## In-code usage
 
 ```python
-from scripts.router import FridayRouter
+from scripts.router import IntentRouter, validate_task_string
 
-router = FridayRouter()
+# Validate input first
+is_valid, error = validate_task_string("fix the login bug")
+assert is_valid
+
+router = IntentRouter()
 
 default = router.get_default_model()
-tier = router.classify_task("check server status")        # → "FAST"
-result = router.recommend_model("build auth system")       # → {tier, model, fallback, reasoning}
-spawn = router.spawn_agent("fix this bug", label="bugfix") # → {params: {task, model, sessionTarget}}
-cost = router.estimate_cost("design landing page")         # → {tier, model, cost, currency}
+tier = router.classify_task("check server status")        # -> "FAST"
+result = router.recommend_model("build auth system")       # -> {tier, model, fallback, reasoning}
+spawn = router.spawn_agent("fix this bug", label="bugfix") # -> {params: {task, model, sessionTarget}}
+cost = router.estimate_cost("design landing page")         # -> {tier, model, cost, currency}
 ```
+
+---
+
+## Input validation
+
+IntentRouter validates all task strings before routing:
+
+- **Empty/whitespace** -- rejected
+- **Overly long** (>4000 chars) -- rejected
+- **Prompt injection** -- patterns like "ignore previous instructions", "you are now a", "override safety filter" are rejected
+- Validation runs both in the CLI and in `spawn_agent()`
 
 ---
 
@@ -117,7 +132,7 @@ cost = router.estimate_cost("design landing page")         # → {tier, model, c
 |------|------------------|
 | **FAST** | check, get, list, show, status, monitor, fetch, simple |
 | **REASONING** | prove, logic, analyze, derive, math, step by step |
-| **CREATIVE** | creative, write, story, design, UI, UX, frontend, website (website projects → Kimi k2.5 only) |
+| **CREATIVE** | creative, write, story, design, UI, UX, frontend, website (website projects -> Kimi k2.5 only) |
 | **RESEARCH** | research, find, search, lookup, web, information |
 | **CODE** | code, function, debug, fix, implement, refactor, test, React, JWT (not website builds) |
 | **QUALITY** | complex, architecture, design, system, comprehensive |
@@ -128,43 +143,51 @@ cost = router.estimate_cost("design landing page")         # → {tier, model, c
 
 ---
 
----
-
 ## Changelog
+
+### v1.8.0 (Identity fix + security hardening)
+
+**Identity resolution:**
+- Fixed name/slug/displayName across SKILL.md, _meta.json, config.json, README.md, and router.py to consistently use "IntentRouter"
+- Renamed class from `FridayRouter` to `IntentRouter`
+- Updated CLI description and all user-facing references
+- Removed stale REVIEW-name-conformity.md (no longer applicable)
+
+**Security hardening:**
+- Added `validate_task_string()` function for input validation
+- Added prompt-injection rejection (10 patterns covering common injection techniques)
+- Added max task length enforcement (4000 chars)
+- Validation runs in both CLI and `spawn_agent()` method
+- Removed unused `math` import
+
+**Config cleanup:**
+- Removed redundant COMPLEX tier from routing_rules (was identical to QUALITY)
+- COMPLEX keyword matches now map to QUALITY tier in classify_task
 
 ### v1.7.0 (Security-focused release)
 
-**Removed functionality (for improved security rating):**
-- **Gateway guard integration** — Removed `gateway_watchdog.py` and gateway auth management functionality. Use the separate [gateway-guard](https://clawhub.ai/skills/gateway-guard) skill for gateway auth checking and management.
-- **Gateway auth secret exposure** — Removed `get_openclaw_gateway_config()` function that exposed gateway tokens/passwords in router output. Router spawn output no longer includes `gatewayToken`, `gatewayPassword`, `gatewayAuthMode`, or `gatewayPort`.
-- **FACEPALM troubleshooting integration** — Removed troubleshooting loop detection and automatic FACEPALM invocation. Use the separate [FACEPALM](https://github.com/RuneweaverStudios/FACEPALM) skill if intelligent troubleshooting is needed.
-
-**Security improvements:**
-- Router now only handles model routing with no credential exposure
-- No process management capabilities (no gateway restart/kill operations)
-- Clean separation of concerns: routing vs. gateway management vs. troubleshooting
-
-**Migration:**
-- If you need gateway auth management: `clawhub install gateway-guard`
-- If you need troubleshooting: Install [FACEPALM](https://github.com/RuneweaverStudios/FACEPALM) separately
+- Removed gateway auth secret exposure
+- Removed gateway management functionality
+- Removed FACEPALM integration
+- Clean separation of concerns
 
 ---
 
 ## Configuration
 
-- **`config.json`** — Model list and `routing_rules` per tier; `default_model` (e.g. `openrouter/google/gemini-2.5-flash`) for session default and orchestrator.
+- **`config.json`** -- Model list and `routing_rules` per tier; `default_model` (e.g. `openrouter/google/gemini-2.5-flash`) for session default and orchestrator.
 - Router loads `config.json` from the parent of `scripts/` (skill root).
 
 ---
 
 ## Related skills
 
-- **[gateway-guard](https://clawhub.ai/skills/gateway-guard)** — Gateway auth management (use separately if needed)
-- **[FACEPALM](https://github.com/RuneweaverStudios/FACEPALM)** — Intelligent troubleshooting (use separately if needed)
-- **[what-just-happened](https://clawhub.ai/skills/what-just-happened)** — Summarizes gateway restarts
+- **[gateway-guard](https://clawhub.ai/skills/gateway-guard)** -- Gateway auth management (use separately if needed)
+- **[FACEPALM](https://github.com/RuneweaverStudios/FACEPALM)** -- Intelligent troubleshooting (use separately if needed)
+- **[what-just-happened](https://clawhub.ai/skills/what-just-happened)** -- Summarizes gateway restarts
 
 ---
 
 ## License / author
 
-Austin. Part of the OpenClaw skills ecosystem.
+Austin / RuneweaverStudios. Part of the OpenClaw skills ecosystem.
