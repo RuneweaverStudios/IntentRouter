@@ -9,6 +9,10 @@
   "tags": ["routing", "llm", "intent-classification", "subagent", "orchestration", "openclaw"],
   "main": "scripts/router.py",
   "platform": "openclaw",
+  "requires": {
+    "env": ["OPENROUTER_API_KEY"],
+    "optionalEnv": ["OPENCLAW_HOME"]
+  },
   "ownerId": "kn74sc8m1khsy0rfa1vdgg8dzx813t0t",
   "publishedAt": 1771236743674
 }
