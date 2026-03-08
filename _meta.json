@@ -1,7 +1,13 @@
 {
-  "ownerId": "kn74sc8m1khsy0rfa1vdgg8dzx813t0t",
+  "schema": "openclaw.skill.v1",
   "slug": "agent-swarm",
-  "displayName": "Agent Swarm | OpenClaw Skill",
+  "name": "agent-swarm",
   "version": "1.7.0",
+  "displayName": "Agent Swarm | OpenClaw Skill",
+  "description": "LLM routing and subagent delegation for OpenClaw. Routes each task to the right model (code, creative, research) and spawns subagents so you save tokens and get better results.",
+  "author": "RuneweaverStudios",
+  "tags": [],
+  "platform": "openclaw",
+  "ownerId": "kn74sc8m1khsy0rfa1vdgg8dzx813t0t",
   "publishedAt": 1771236743674
 }
